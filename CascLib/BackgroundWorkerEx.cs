@@ -197,7 +197,7 @@ namespace CASCLib
     //    }
     //}
 
-    public class BackgroundWorkerEx : BackgroundWorker
+    public class BackgroundWorkerEx : BackgroundWorker, IBackgroundWorkerEx
     {
         private int lastProgressPercentage;
 
