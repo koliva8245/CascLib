@@ -32,6 +32,7 @@ namespace CASCLib
         jaJP = 0x04000000, // custom
         trTR = 0x08000000, // custom
         arSA = 0x10000000, // custom
+        zhHM = 0x20000000, // custom
         All_WoW = enUS | koKR | frFR | deDE | zhCN | esES | zhTW | enGB | esMX | ruRU | ptBR | itIT | ptPT
     }
 
@@ -50,6 +51,7 @@ namespace CASCLib
         F00000100 = 0x100, // apparently client doesn't load files with this flag
         F00000800 = 0x800, // only seen on UpdatePlugin files
         F00008000 = 0x8000, // Windows ARM64?
+        F00010000 = 0x10000,
         F00020000 = 0x20000, // new 9.0
         F00040000 = 0x40000, // new 9.0
         F00080000 = 0x80000, // new 9.0
@@ -57,11 +59,12 @@ namespace CASCLib
         F00200000 = 0x200000, // new 9.0
         F00400000 = 0x400000, // new 9.0
         F00800000 = 0x800000, // new 9.0
+        F01000000 = 0x1000000,
         F02000000 = 0x2000000, // new 9.0
-        F04000000 = 0x4000000, // new 9.0
+        F04000000 = 0x4000000, // new 9.0 Blacklisted?
         Encrypted = 0x8000000, // encrypted may be?
-        NoNameHash = 0x10000000, // doesn't have name hash?
-        F20000000 = 0x20000000, // added in 21737, used for many cinematics
+        NoNameHash = 0x10000000, // doesn't have name hash? DarkData?
+        F20000000 = 0x20000000, // added in 21737, used for many cinematics WarnOnCommit?
         F40000000 = 0x40000000,
         NotCompressed = 0x80000000 // sounds have this flag
     }
@@ -133,28 +136,34 @@ namespace CASCLib
 
             int numFilesTotal = 0, numFilesWithNameHash = 0, numFilesRead = 0;
 
-            const int TSFMMagic = 0x4D465354;
+            const int MFSTMagic = 0x4D465354;
 
+            bool isNewManifest = magic == MFSTMagic;
             int headerSize;
-            bool isLegacy;
+            int version = 0;
 
-            if (magic == TSFMMagic)
+            if (isNewManifest)
             {
-                isLegacy = false;
-
                 if (stream.BaseStream.Length < 12)
                     throw new Exception("build manifest is truncated");
 
-                int field04 = stream.ReadInt32();
-                int field08 = stream.ReadInt32();
+                headerSize = stream.ReadInt32();
+                version = stream.ReadInt32();
 
-                int version = field08;
-                headerSize = field04;
-
-                if (version != 1)
+                if (headerSize != 0x18)
                 {
-                    numFilesTotal = field04;
-                    numFilesWithNameHash = field08;
+                    version = 0;
+                }
+                else
+                {
+                    if (version != 1 && version != 2)
+                        throw new Exception("build manifest is an unrecognized version");
+                }
+
+                if (version == 0)
+                {
+                    numFilesTotal = headerSize;
+                    numFilesWithNameHash = version;
                     headerSize = 12;
                 }
                 else
@@ -165,7 +174,6 @@ namespace CASCLib
             }
             else
             {
-                isLegacy = true;
                 headerSize = 0;
                 numFilesTotal = (int)(stream.BaseStream.Length / 28);
                 numFilesWithNameHash = (int)(stream.BaseStream.Length / 28);
@@ -176,16 +184,32 @@ namespace CASCLib
 
             stream.BaseStream.Position = headerSize;
 
-            int blockIndex = 0;
+            //int blockIndex = 0;
 
             while (stream.BaseStream.Position < stream.BaseStream.Length)
             {
-                int count = stream.ReadInt32();
+                int count = 0;
+                ContentFlags contentFlags = ContentFlags.None;
+                LocaleFlags localeFlags = LocaleFlags.None;
+
+                if (version == 0 || version == 1)
+                {
+                    count = stream.ReadInt32();
+                    contentFlags = (ContentFlags)stream.ReadUInt32();
+                    localeFlags = (LocaleFlags)stream.ReadUInt32();
+                }
+                else if (version == 2)
+                {
+                    count = stream.ReadInt32();
+                    localeFlags = (LocaleFlags)stream.ReadUInt32();
+                    uint contentFlags1 = stream.ReadUInt32();
+                    uint contentFlags2 = stream.ReadUInt32();
+                    byte contentFlags3 = stream.ReadByte();
+                    // convert back to old flags for now
+                    contentFlags = (ContentFlags)(contentFlags1 | contentFlags2 | (uint)(contentFlags3 << 17));
+                }
 
                 numFilesRead += count;
-
-                ContentFlags contentFlags = (ContentFlags)stream.ReadUInt32();
-                LocaleFlags localeFlags = (LocaleFlags)stream.ReadUInt32();
 
                 if (localeFlags == LocaleFlags.None)
                     throw new InvalidDataException("block.LocaleFlags == LocaleFlags.None");
@@ -211,7 +235,7 @@ namespace CASCLib
 
                 ulong[] nameHashes = null;
 
-                if (!isLegacy)
+                if (isNewManifest)
                 {
                     for (var i = 0; i < count; ++i)
                         entries[i].cKey = stream.Read<MD5Hash>();
@@ -282,7 +306,7 @@ namespace CASCLib
 
                 worker?.ReportProgress((int)(stream.BaseStream.Position / (float)stream.BaseStream.Length * 100));
 
-                blockIndex++;
+                //blockIndex++;
             }
         }
 

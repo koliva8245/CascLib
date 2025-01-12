@@ -486,19 +486,19 @@ namespace CASCLib
         Preset = 153,
         PreviewComposition = 154,
         SpawnPool = 155,
-        Unknown_156 = 156, // .rdx
+        Raid = 156,
         BattlePassTier = 157,
         Zone = 158,
         Unknown_159 = 159, // .ggu
-        Unknown_160 = 160, // .dtk
+        DeathKit = 160,
         Snippet = 161,
         CommunityModifier = 162,
         GenericNodeGraph = 163,
         UserDefinedData = 164,
         Unknown_165 = 165, // .fds
         Unknown_166 = 166, // .bvr
-        Unknown_167 = 167, // .asv
-        Unknown_168 = 168, // .dmg
+        ActorService = 167,
+        DamageRemap = 168,
         MAX_SNO_GROUPS = 169,
     }
 
@@ -699,7 +699,19 @@ namespace CASCLib
         {
             using (var br = new BinaryReader(stream))
             {
-                int numSnoGroups = br.ReadInt32();
+                uint magic = br.ReadUInt32();
+
+                int numSnoGroups;
+
+                if (magic == 0xBCDE6611)
+                {
+                    numSnoGroups = br.ReadInt32();
+                }
+                else
+                {
+                    br.BaseStream.Position = 0;
+                    numSnoGroups = br.ReadInt32();
+                }
 
                 //if (numSnoGroups != NUM_SNO_GROUPS)
                 //    return;
@@ -725,9 +737,30 @@ namespace CASCLib
                     entryUnkCounts[i] = br.ReadInt32();
                 }
 
+                int[] entryHashes = new int[numSnoGroups];
+
+                if (magic == 0xBCDE6611)
+                {
+                    entryHashes = new int[numSnoGroups];
+
+                    for (int i = 0; i < entryHashes.Length; i++)
+                    {
+                        entryHashes[i] = br.ReadInt32();
+                    }
+                }
+
                 int unk1 = br.ReadInt32();
 
-                int headerSize = 4 + numSnoGroups * (4 + 4 + 4) + 4;
+                int headerSize;
+
+                if (magic == 0xBCDE6611)
+                {
+                    headerSize = 4 + 4 + numSnoGroups * (4 + 4 + 4 + 4) + 4;
+                }
+                else
+                {
+                    headerSize = 4 + numSnoGroups * (4 + 4 + 4) + 4;
+                }
 
                 for (int i = 0; i < numSnoGroups; i++)
                 {
