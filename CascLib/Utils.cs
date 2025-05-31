@@ -1,6 +1,10 @@
 ﻿using System;
 using System.IO;
 using System.Net;
+using System.Net.Http;
+using System.Net.Http.Headers;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace CASCLib
 {
@@ -21,63 +25,24 @@ namespace CASCLib
             return $"http://{cdnHost}/{cdnPath}";
         }
 
-        private static HttpWebResponse HttpWebResponse(string url, string method = "GET", int? from = null, int? to = null, int numRetries = 0)
+        public static HttpResponseMessage HttpWebResponseHead(string url)
         {
-            if (numRetries >= 5)
-            {
-                string message = $"Utils: HttpWebResponse for {url} failed after 5 tries";
-                Logger.WriteLine(message);
-                throw new Exception(message);
-            }
+            HttpRequestMessage httpRequestMessage = new(HttpMethod.Head, url);
 
-            HttpWebRequest req = WebRequest.CreateHttp(url);
-            req.Method = method;
-
-            if (method == "GET")
-            {
-                req.ReadWriteTimeout = 15000;
-
-                if (from.HasValue && to.HasValue)
-                    req.AddRange(from.Value, to.Value);
-            }
-
-            HttpWebResponse resp;
-
-            try
-            {
-                return (HttpWebResponse)req.GetResponse();
-            }
-            catch (WebException exc)
-            {
-                using (resp = (HttpWebResponse)exc.Response)
-                {
-                    if (exc.Status == WebExceptionStatus.ProtocolError && (resp.StatusCode == HttpStatusCode.NotFound || resp.StatusCode == (HttpStatusCode)429))
-                    {
-                        return HttpWebResponse(url, method, from, to, numRetries + 1);
-                    }
-                    else
-                    {
-                        string message = $"Utils: error at HttpWebResponse {url}: Status {exc.Status}, StatusCode {resp.StatusCode}";
-                        Logger.WriteLine(message);
-                        throw new Exception(message);
-                    }
-                }
-            }
+            return HttpClientService.Instance.SendAsync(httpRequestMessage).Result;
         }
 
-        public static HttpWebResponse HttpWebResponseHead(string url)
+        public static HttpResponseMessage HttpWebResponseGet(string url)
         {
-            return HttpWebResponse(url, "HEAD");
+            return HttpClientService.Instance.GetAsync(url).Result;
         }
 
-        public static HttpWebResponse HttpWebResponseGet(string url)
+        public static HttpResponseMessage HttpWebResponseGetWithRange(string url, int from, int to)
         {
-            return HttpWebResponse(url, "GET");
-        }
+            HttpRequestMessage httpRequestMessage = new(HttpMethod.Get, url);
+            httpRequestMessage.Headers.Range = new RangeHeaderValue(from, to);
 
-        public static HttpWebResponse HttpWebResponseGetWithRange(string url, int from, int to)
-        {
-            return HttpWebResponse(url, "GET", from, to);
+            return HttpClientService.Instance.SendAsync(httpRequestMessage).Result;
         }
 
         // copies whole stream
@@ -105,14 +70,6 @@ namespace CASCLib
             src.CopyBytes(ms, numBytes);
             ms.Position = 0;
             return ms;
-        }
-
-        public static long GetFileSize(string url)
-        {
-            using (var resp = Utils.HttpWebResponseHead(url))
-            {
-                return resp.ContentLength;
-            }
         }
     }
 }

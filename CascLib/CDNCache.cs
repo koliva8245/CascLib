@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.IO.MemoryMappedFiles;
 using System.Net;
+using System.Net.Http;
 
 namespace CASCLib
 {
@@ -171,17 +172,17 @@ namespace CASCLib
             return true;
         }
 
-        private CacheMetaData CacheFile(HttpWebResponse resp, string fileName)
+        private CacheMetaData CacheFile(HttpResponseMessage resp, string fileName)
         {
-            var lastModifiedStr = resp.Headers[HttpResponseHeader.LastModified];
+            long contentLength = resp.Content.Headers.ContentLength ?? 0;
+            DateTimeOffset lastModified = resp.Content.Headers.LastModified ?? DateTimeOffset.MinValue;
 
-            DateTime lastModified = lastModifiedStr != null ? DateTime.Parse(lastModifiedStr) : DateTime.MinValue;
-            CacheMetaData meta = new CacheMetaData(resp.ContentLength, lastModified);
+            CacheMetaData meta = new CacheMetaData(contentLength, lastModified.DateTime);
             _metaData[fileName] = meta;
 
             using (var sw = File.AppendText(Path.Combine(CachePath, "cache.meta")))
             {
-                sw.WriteLine($"{fileName} {resp.ContentLength} {lastModified}");
+                sw.WriteLine($"{fileName} {contentLength} {lastModified}");
             }
 
             return meta;
@@ -241,20 +242,19 @@ namespace CASCLib
                 using (var resp = Utils.HttpWebResponseGet(url))
                 {
                     CacheMetaData meta;
-                    using (Stream stream = resp.GetResponseStream())
+                    using (Stream stream = resp.Content.ReadAsStream())
                     using (Stream fs = new FileStream(path, FileMode.Create, FileAccess.Write))
                     {
-                        stream.CopyToStream(fs, resp.ContentLength);
+                        stream.CopyToStream(fs, resp.Content.Headers.ContentLength ?? 0);
                         meta = CacheFile(resp, Path.GetFileName(path));
                     }
                     FileInfo fileInfo = new FileInfo(path);
                     fileInfo.CreationTime = meta.LastModified;
                 }
             }
-            catch (WebException exc)
+            catch (HttpRequestException exc)
             {
-                var resp = (HttpWebResponse)exc.Response;
-                Logger.WriteLine($"CDNCache: error while downloading {url}: Status {exc.Status}, StatusCode {resp?.StatusCode}");
+                Logger.WriteLine($"CDNCache: error while downloading {url}: Status {exc.Message}, StatusCode {exc.StatusCode}");
                 return false;
             }
 
@@ -278,10 +278,9 @@ namespace CASCLib
                     return CacheFile(resp, fileName);
                 }
             }
-            catch (WebException exc)
+            catch (HttpRequestException exc)
             {
-                var resp = (HttpWebResponse)exc.Response;
-                Logger.WriteLine($"CDNCache: error at GetMetaData {url}: Status {exc.Status}, StatusCode {resp.StatusCode}");
+                Logger.WriteLine($"CDNCache: error at GetMetaData {url}: Status {exc.Message}, StatusCode {exc.StatusCode}");
                 return null;
             }
         }

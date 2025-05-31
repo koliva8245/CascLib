@@ -205,11 +205,8 @@ namespace CASCLib
 
         protected Stream OpenFile(string url)
         {
-            using (var resp = Utils.HttpWebResponseGet(url))
-            using (Stream stream = resp.GetResponseStream())
-            {
-                return stream.CopyToMemoryStream(resp.ContentLength);
-            }
+            using var resp = Utils.HttpWebResponseGet(url);
+            return resp.Content.ReadAsStream();
         }
     }
 }

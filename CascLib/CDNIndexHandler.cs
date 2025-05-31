@@ -1,8 +1,7 @@
 ﻿using System.IO;
 using System.IO.MemoryMappedFiles;
 using System.Net;
-//using System.Net.Http;
-//using System.Net.Http.Headers;
+using System.Net.Http;
 
 namespace CASCLib
 {
@@ -88,15 +87,14 @@ namespace CASCLib
             try
             {
                 using (var resp = Utils.HttpWebResponseGetWithRange(url, entry.Offset, entry.Offset + entry.Size - 1))
-                using (Stream rstream = resp.GetResponseStream())
+                using (Stream rstream = resp.Content.ReadAsStream())
                 {
                     return rstream.CopyBytesToMemoryStream(entry.Size);
                 }
             }
-            catch (WebException exc)
+            catch (HttpRequestException exc)
             {
-                var resp = (HttpWebResponse)exc.Response;
-                Logger.WriteLine($"CDNIndexHandler: error while opening {url}: Status {exc.Status}, StatusCode {resp?.StatusCode}");
+                Logger.WriteLine($"CDNIndexHandler: error while opening {url}: Status {exc.Message}, StatusCode {exc.StatusCode}");
                 return null;
             }
         }
@@ -146,9 +144,9 @@ namespace CASCLib
             //}
 
             using (var resp = Utils.HttpWebResponseGet(url))
-            using (Stream stream = resp.GetResponseStream())
+            using (Stream stream = resp.Content.ReadAsStream())
             {
-                return stream.CopyToMemoryStream(resp.ContentLength);
+                return stream.CopyToMemoryStream(resp.Content.Headers.ContentLength ?? 0);
             }
         }
 

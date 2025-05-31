@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net.Http;
 
 namespace CASCLib
 {
@@ -112,24 +113,27 @@ namespace CASCLib
             }
         }
 
-        public static CASCHandler OpenStorage(CASCConfig config, BackgroundWorkerEx worker = null) => Open(config, worker);
+        public static CASCHandler OpenStorage(CASCConfig config, BackgroundWorkerEx worker = null, HttpClient httpClient = null) => Open(config, worker, httpClient);
 
-        public static CASCHandler OpenLocalStorage(string basePath, string product = null, BackgroundWorkerEx worker = null)
+        public static CASCHandler OpenLocalStorage(string basePath, string product = null, BackgroundWorkerEx worker = null, HttpClient httpClient = null)
         {
             CASCConfig config = CASCConfig.LoadLocalStorageConfig(basePath, product);
 
-            return Open(config, worker);
+            return Open(config, worker, httpClient);
         }
 
-        public static CASCHandler OpenOnlineStorage(string product, string region = "us", BackgroundWorkerEx worker = null)
+        public static CASCHandler OpenOnlineStorage(string product, string region = "us", BackgroundWorkerEx worker = null, HttpClient httpClient = null)
         {
             CASCConfig config = CASCConfig.LoadOnlineStorageConfig(product, region);
 
-            return Open(config, worker);
+            return Open(config, worker, httpClient);
         }
 
-        private static CASCHandler Open(CASCConfig config, BackgroundWorkerEx worker)
+        private static CASCHandler Open(CASCConfig config, BackgroundWorkerEx worker, HttpClient httpClient)
         {
+            if (httpClient is not null)
+                HttpClientService.SetHttpClient(httpClient);
+
             using (var _ = new PerfCounter("new CASCHandler()"))
             {
                 return new CASCHandler(config, worker);
