@@ -56,14 +56,7 @@ namespace CASCLib
             // v2 lives at: https://{region}.version.battle.net/{request}
             var url = $"https://{region}{ribbitHost}/{request}";
 
-            using var handler = new HttpClientHandler();
-            handler.AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate;
-            using var http = new HttpClient(handler);
-            http.Timeout = TimeSpan.FromSeconds(30);
-
-            http.DefaultRequestHeaders.UserAgent.ParseAdd("CASCLib.RibbitClient/2");
-
-            var resp = http.GetAsync(url).GetAwaiter().GetResult();
+            var resp = HttpClientService.Instance.GetAsync(url).GetAwaiter().GetResult();
             resp.EnsureSuccessStatusCode();
             return resp.Content.ReadAsStringAsync().GetAwaiter().GetResult();
         }

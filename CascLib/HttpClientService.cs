@@ -1,7 +1,10 @@
 ﻿using System;
 using System.Net;
 using System.Net.Http;
+using System.Net.Http.Headers;
+#if NET9_0_OR_GREATER
 using System.Threading;
+#endif
 
 namespace CASCLib;
 
@@ -40,12 +43,16 @@ internal static class HttpClientService
 
     private static HttpClient CreateDefaultClient()
     {
-        return new HttpClient(new HttpClientHandler
+        HttpClient httpClient = new(new HttpClientHandler
         {
             AutomaticDecompression = DecompressionMethods.All,
         })
         {
             Timeout = TimeSpan.FromSeconds(30)
         };
+        httpClient.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("CASCLib", "1.0"));
+        httpClient.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("(modded fork)"));
+
+        return httpClient;
     }
 }
