@@ -33,7 +33,7 @@ namespace CASCLib
             {
                 handler.ParseIndex(idx);
 
-                worker?.Report((int)(++idxIndex / (float)idxFiles.Count * 100));
+                worker?.Report((int)(++idxIndex / (float)idxFiles.Count * 100), progressStage: ProgressStage.LocalIndexes);
             }
 
             Logger.WriteLine("LocalIndexHandler: loaded {0} indexes", handler.Count);

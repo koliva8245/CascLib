@@ -97,7 +97,7 @@ namespace CASCLib
                 if (remaining > 0)
                     stream.BaseStream.Position += remaining;
 
-                worker?.Report((int)((i + 1) / (float)CKeyPageCount * 100));
+                worker?.Report((int)((i + 1) / (float)CKeyPageCount * 100), progressStage: ProgressStage.Encoding);
             }
 
             stream.Skip(EKeyPageCount * 32);

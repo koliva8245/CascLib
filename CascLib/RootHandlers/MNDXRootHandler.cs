@@ -156,7 +156,7 @@ namespace CASCLib
                 //        p[entry.Flags & 0x00FFFFFF]++;
                 //}
 
-                worker?.Report((int)((i + 1) / (float)MndxEntriesTotal * 100));
+                worker?.Report((int)((i + 1) / (float)MndxEntriesTotal * 100), progressStage: ProgressStage.Root);
             }
 
             //for (int i = 0; i < MndxEntriesTotal; ++i)
@@ -383,7 +383,7 @@ namespace CASCLib
 
                 //Console.WriteLine("{0:X8} - {1:X8} - {2} - {3}", result2.FileNameIndex, root.Flags, root.EncodingKey.ToHexString(), file);
 
-                worker?.Report((int)(++i / (float)MarFiles[2].NumFiles * 100));
+                worker?.Report((int)(++i / (float)MarFiles[2].NumFiles * 100), progressStage: ProgressStage.ListFile);
             }
 
             //var sorted = data.OrderBy(e => e.Key);

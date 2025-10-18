@@ -35,7 +35,7 @@ namespace CASCLib
                 {
                     worker?.Start(0, "Loading \"CDN group index\"...", ProgressStage.CDNIndexes);
                     handler.OpenIndexFile(config.ArchiveGroup, -1);
-                    worker?.Report(100);
+                    worker?.Report(100, progressStage: ProgressStage.CDNIndexes);
 
                     return handler;
                 }
@@ -52,7 +52,7 @@ namespace CASCLib
                 else
                     handler.OpenIndexFile(archive, i);
 
-                worker?.Report((int)((i + 1) / (float)config.Archives.Count * 100));
+                worker?.Report((int)((i + 1) / (float)config.Archives.Count * 100), progressStage: ProgressStage.CDNIndexes);
             }
 
             return handler;

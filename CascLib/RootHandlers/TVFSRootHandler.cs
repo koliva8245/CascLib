@@ -128,7 +128,7 @@ namespace CASCLib
             //        Logger.WriteLine($"    {key.ToHexString()}");
             //}
 
-            worker?.Report(100);
+            worker?.Report(100, progressStage: ProgressStage.Root);
         }
 
         private static bool PathBuffer_AppendNode(ref PathBuffer pathBuffer, in PathTableEntry pathEntry)
