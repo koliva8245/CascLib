@@ -14,11 +14,11 @@ namespace CASCLib
         private readonly Dictionary<int, string> encryptedNames = new Dictionary<int, string>();
         private readonly Dictionary<int, (int group, ulong keyId)> encryptedSNOs = new Dictionary<int, (int group, ulong keyId)>();
 
-        public D4RootHandler(BackgroundWorkerEx worker, CASCHandler casc) : base(worker, casc)
+        public D4RootHandler(ProgressReporter worker, CASCHandler casc) : base(worker, casc)
         {
             cascHandler = casc;
 
-            worker?.ReportProgress(0, "Loading \"root\"...");
+            worker?.Start(0, "Loading \"root\"...");
 
             // Parse CoreTOC.dat
             var coreTocEntry = GetVfsRootEntries(Hasher.ComputeHash("Base\\CoreTOC.dat")).FirstOrDefault();
@@ -137,7 +137,7 @@ namespace CASCLib
 
             // TODO: handle base/CoreTOCReplacedSnosMapping.dat?
 
-            worker?.ReportProgress(100);
+            worker?.Report(100);
         }
 
         public override void Clear()
@@ -147,9 +147,9 @@ namespace CASCLib
             base.Clear();
         }
 
-        public override void LoadListFile(string path, BackgroundWorkerEx worker = null)
+        public override void LoadListFile(string path, ProgressReporter worker = null)
         {
-            worker?.ReportProgress(0, "Loading \"listfile\"...");
+            worker?.Start(0, "Loading \"listfile\"...");
 
             Logger.WriteLine("D4RootHandler: loading file names...");
 

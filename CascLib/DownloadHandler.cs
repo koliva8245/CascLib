@@ -26,9 +26,9 @@ namespace CASCLib
 
         public int Count => DownloadData.Count;
 
-        public DownloadHandler(BinaryReader stream, BackgroundWorkerEx worker)
+        public DownloadHandler(BinaryReader stream, ProgressReporter worker)
         {
-            worker?.ReportProgress(0, "Loading \"download\"...");
+            worker?.Start(0, "Loading \"download\"...");
 
             stream.Skip(2); // DL
 
@@ -54,7 +54,7 @@ namespace CASCLib
 
                 DownloadData.Add(key, entry);
 
-                worker?.ReportProgress((int)((i + 1) / (float)numFiles * 100));
+                worker?.Report((int)((i + 1) / (float)numFiles * 100));
             }
 
             for (int i = 0; i < numTags; i++)

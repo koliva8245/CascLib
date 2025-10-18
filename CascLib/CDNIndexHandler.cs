@@ -16,15 +16,15 @@ namespace CASCLib
 
     public class CDNIndexHandler : IndexHandlerBase
     {
-        private BackgroundWorkerEx worker;
+        private ProgressReporter worker;
 
-        private CDNIndexHandler(CASCConfig cascConfig, BackgroundWorkerEx worker)
+        private CDNIndexHandler(CASCConfig cascConfig, ProgressReporter worker)
         {
             config = cascConfig;
             this.worker = worker;
         }
 
-        public static CDNIndexHandler Initialize(CASCConfig config, BackgroundWorkerEx worker)
+        public static CDNIndexHandler Initialize(CASCConfig config, ProgressReporter worker)
         {
             var handler = new CDNIndexHandler(config, worker);
 
@@ -33,13 +33,15 @@ namespace CASCLib
                 string groupArchivePath = Path.Combine(config.BasePath, CASCGame.GetDataFolder(config.GameType), "indices", config.ArchiveGroup + ".index");
                 if (File.Exists(groupArchivePath))
                 {
-                    worker?.ReportProgress(0, "Loading \"CDN group index\"...");
+                    worker?.Start(0, "Loading \"CDN group index\"...");
                     handler.OpenIndexFile(config.ArchiveGroup, -1);
+                    worker?.Report(100);
+
                     return handler;
                 }
             }
 
-            worker?.ReportProgress(0, "Loading \"CDN indexes\"...");
+            worker?.Start(0, "Loading \"CDN indexes\"...");
 
             for (int i = 0; i < config.Archives.Count; i++)
             {
@@ -50,7 +52,7 @@ namespace CASCLib
                 else
                     handler.OpenIndexFile(archive, i);
 
-                worker?.ReportProgress((int)((i + 1) / (float)config.Archives.Count * 100));
+                worker?.Report((int)((i + 1) / (float)config.Archives.Count * 100));
             }
 
             return handler;
@@ -103,18 +105,20 @@ namespace CASCLib
         {
             var keyStr = key.ToHexString().ToLower();
 
-            worker?.ReportProgress(0, string.Format("Downloading \"{0}\" file...", keyStr));
+            worker?.Start(0, string.Format("Downloading \"{0}\" file...", keyStr));
 
             string file = Utils.MakeCDNPath(config.CDNPath, "data", keyStr);
 
             Stream stream = CDNCache.Instance.OpenFile(file);
 
-            if (stream != null)
-                return stream;
+            if (stream is null)
+            {
+                string url = Utils.MakeCDNUrl(config.CDNHost, file);
+                stream = OpenFile(url);
+            }
 
-            string url = Utils.MakeCDNUrl(config.CDNHost, file);
-
-            return OpenFile(url);
+            worker?.Report(100);
+            return stream;
         }
 
         public static Stream OpenConfigFileDirect(CASCConfig cfg, string key)

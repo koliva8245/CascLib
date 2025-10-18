@@ -10,9 +10,9 @@ namespace CASCLib
 
         public override int Count => RootData.Count;
 
-        public S1RootHandler(BinaryReader stream, BackgroundWorkerEx worker)
+        public S1RootHandler(BinaryReader stream, ProgressReporter worker)
         {
-            worker?.ReportProgress(0, "Loading \"root\"...");
+            worker?.Start(0, "Loading \"root\"...");
 
             using (StreamReader sr = new StreamReader(stream.BaseStream))
             {
@@ -51,7 +51,7 @@ namespace CASCLib
                 }
             }
 
-            worker?.ReportProgress(100);
+            worker?.Report(100);
         }
 
         public override IEnumerable<KeyValuePair<ulong, RootEntry>> GetAllEntries()
@@ -71,7 +71,7 @@ namespace CASCLib
             return GetEntriesForSelectedLocale(hash);
         }
 
-        public override void LoadListFile(string path, BackgroundWorkerEx worker = null)
+        public override void LoadListFile(string path, ProgressReporter worker = null)
         {
 
         }

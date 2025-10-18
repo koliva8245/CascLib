@@ -86,9 +86,9 @@ namespace CASCLib
         public override int Count => MarFiles[2].NumFiles;
         public override int CountTotal => MarFiles[2].NumFiles;
 
-        public MNDXRootHandler(BinaryReader stream, BackgroundWorkerEx worker)
+        public MNDXRootHandler(BinaryReader stream, ProgressReporter worker)
         {
-            worker?.ReportProgress(0, "Loading \"root\"...");
+            worker?.Start(0, "Loading \"root\"...");
 
             var header = stream.Read<MNDXHeader>();
 
@@ -156,7 +156,7 @@ namespace CASCLib
                 //        p[entry.Flags & 0x00FFFFFF]++;
                 //}
 
-                worker?.ReportProgress((int)((i + 1) / (float)MndxEntriesTotal * 100));
+                worker?.Report((int)((i + 1) / (float)MndxEntriesTotal * 100));
             }
 
             //for (int i = 0; i < MndxEntriesTotal; ++i)
@@ -313,9 +313,9 @@ namespace CASCLib
             throw new Exception("File not found!");
         }
 
-        public override void LoadListFile(string path, BackgroundWorkerEx worker = null)
+        public override void LoadListFile(string path, ProgressReporter worker = null)
         {
-            worker?.ReportProgress(0, "Loading \"listfile\"...");
+            worker?.Start(0, "Loading \"listfile\"...");
 
             Logger.WriteLine("MNDXRootHandler: loading file names...");
 
@@ -383,7 +383,7 @@ namespace CASCLib
 
                 //Console.WriteLine("{0:X8} - {1:X8} - {2} - {3}", result2.FileNameIndex, root.Flags, root.EncodingKey.ToHexString(), file);
 
-                worker?.ReportProgress((int)(++i / (float)MarFiles[2].NumFiles * 100));
+                worker?.Report((int)(++i / (float)MarFiles[2].NumFiles * 100));
             }
 
             //var sorted = data.OrderBy(e => e.Key);

@@ -99,9 +99,9 @@ namespace CASCLib
             public int NodeValue;
         }
 
-        public TVFSRootHandler(BackgroundWorkerEx worker, CASCHandler casc)
+        public TVFSRootHandler(ProgressReporter worker, CASCHandler casc)
         {
-            worker?.ReportProgress(0, "Loading \"root\"...");
+            worker?.Start(0, "Loading \"root\"...");
 
             var config = casc.Config;
             VfsRootList = config.VfsRootList;
@@ -128,7 +128,7 @@ namespace CASCLib
             //        Logger.WriteLine($"    {key.ToHexString()}");
             //}
 
-            worker?.ReportProgress(100);
+            worker?.Report(100);
         }
 
         private static bool PathBuffer_AppendNode(ref PathBuffer pathBuffer, in PathTableEntry pathEntry)
@@ -544,7 +544,7 @@ namespace CASCLib
             }
         }
 
-        public override void LoadListFile(string path, BackgroundWorkerEx worker = null)
+        public override void LoadListFile(string path, ProgressReporter worker = null)
         {
 
         }

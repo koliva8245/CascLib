@@ -5,13 +5,13 @@ namespace CASCLib
 {
     public class DummyRootHandler : RootHandlerBase
     {
-        public DummyRootHandler(BinaryReader stream, BackgroundWorkerEx worker)
+        public DummyRootHandler(BinaryReader stream, ProgressReporter worker)
         {
-            worker?.ReportProgress(0, "Loading \"root\"...");
+            worker?.Start(0, "Loading \"root\"...");
 
             // root file is executable, skip
 
-            worker?.ReportProgress(100);
+            worker?.Report(100);
         }
 
         public override IEnumerable<KeyValuePair<ulong, RootEntry>> GetAllEntries()
@@ -30,7 +30,7 @@ namespace CASCLib
             yield break;
         }
 
-        public override void LoadListFile(string path, BackgroundWorkerEx worker = null)
+        public override void LoadListFile(string path, ProgressReporter worker = null)
         {
 
         }

@@ -5,7 +5,7 @@ using System.Threading;
 namespace CASCLib
 {
     //[DefaultEvent("DoWork"), HostProtection(SecurityAction.LinkDemand, SharedState = true)]
-    //public class BackgroundWorkerEx : Component
+    //public class ProgressReporter : Component
     //{
     //    private AsyncOperation asyncOperation;
     //    private bool cancellationPending;
@@ -53,7 +53,7 @@ namespace CASCLib
     //        }
     //    }
 
-    //    public BackgroundWorkerEx()
+    //    public ProgressReporter()
     //    {
     //        this.threadStart = new WorkerThreadStartDelegate(this.WorkerThreadStart);
     //        this.operationCompleted = new SendOrPostCallback(this.AsyncOperationCompleted);
@@ -197,48 +197,48 @@ namespace CASCLib
     //    }
     //}
 
-    public class BackgroundWorkerEx : BackgroundWorker, IBackgroundWorkerEx
-    {
-        private int lastProgressPercentage;
+    //public class BackgroundWorkerEx : BackgroundWorker, IBackgroundWorkerEx
+    //{
+    //    private int lastProgressPercentage;
 
-        public BackgroundWorkerEx()
-        {
-            WorkerReportsProgress = true;
-            WorkerSupportsCancellation = true;
-        }
+    //    public BackgroundWorkerEx()
+    //    {
+    //        WorkerReportsProgress = true;
+    //        WorkerSupportsCancellation = true;
+    //    }
 
-        protected override void OnDoWork(DoWorkEventArgs e)
-        {
-            try
-            {
-                base.OnDoWork(e);
-            }
-            catch (OperationCanceledException)
-            {
-                e.Cancel = true;
-            }
-        }
+    //    protected override void OnDoWork(DoWorkEventArgs e)
+    //    {
+    //        try
+    //        {
+    //            base.OnDoWork(e);
+    //        }
+    //        catch (OperationCanceledException)
+    //        {
+    //            e.Cancel = true;
+    //        }
+    //    }
 
-        public new void ReportProgress(int percentProgress)
-        {
-            if (CancellationPending)
-                throw new OperationCanceledException();
+    //    public new void ReportProgress(int percentProgress)
+    //    {
+    //        if (CancellationPending)
+    //            throw new OperationCanceledException();
 
-            if (IsBusy && percentProgress > lastProgressPercentage)
-                base.ReportProgress(percentProgress);
+    //        if (IsBusy && percentProgress > lastProgressPercentage)
+    //            base.ReportProgress(percentProgress);
 
-            lastProgressPercentage = percentProgress;
-        }
+    //        lastProgressPercentage = percentProgress;
+    //    }
 
-        public new void ReportProgress(int percentProgress, object userState)
-        {
-            if (CancellationPending)
-                throw new OperationCanceledException();
+    //    public new void ReportProgress(int percentProgress, object userState)
+    //    {
+    //        if (CancellationPending)
+    //            throw new OperationCanceledException();
 
-            if (IsBusy)
-                base.ReportProgress(percentProgress, userState);
+    //        if (IsBusy)
+    //            base.ReportProgress(percentProgress, userState);
 
-            lastProgressPercentage = percentProgress;
-        }
-    }
+    //        lastProgressPercentage = percentProgress;
+    //    }
+    //}
 }

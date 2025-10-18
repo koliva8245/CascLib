@@ -128,9 +128,9 @@ namespace CASCLib
         public IReadOnlyDictionary<int, List<RootEntry>> RootEntries => RootData;
         public IReadOnlyDictionary<int, ulong> FileDataToLookup => FileDataStore;
 
-        public WowRootHandler(BinaryReader stream, BackgroundWorkerEx worker)
+        public WowRootHandler(BinaryReader stream, ProgressReporter worker)
         {
-            worker?.ReportProgress(0, "Loading \"root\"...");
+            worker?.Start(0, "Loading \"root\"...");
 
             int magic = stream.ReadInt32();
 
@@ -304,7 +304,7 @@ namespace CASCLib
                     }
                 }
 
-                worker?.ReportProgress((int)(stream.BaseStream.Position / (float)stream.BaseStream.Length * 100));
+                worker?.Report((int)(stream.BaseStream.Position / (float)stream.BaseStream.Length * 100));
 
                 //blockIndex++;
             }
@@ -378,13 +378,13 @@ namespace CASCLib
 
         public int GetFileDataIdByName(string name) => GetFileDataIdByHash(Hasher.ComputeHash(name));
 
-        public override void LoadListFile(string path, BackgroundWorkerEx worker = null)
+        public override void LoadListFile(string path, ProgressReporter worker = null)
         {
             //CASCFile.Files.Clear();
 
             using (var _ = new PerfCounter("WowRootHandler::LoadListFile()"))
             {
-                worker?.ReportProgress(0, "Loading \"listfile\"...");
+                worker?.Start(0, "Loading \"listfile\"...");
 
                 if (!File.Exists(path))
                 {
@@ -435,7 +435,7 @@ namespace CASCLib
                         else
                             Logger.WriteLine($"Duplicate fileDataId {fileDataId} detected: {line}");
 
-                        worker?.ReportProgress((int)(sr.BaseStream.Position / (float)sr.BaseStream.Length * 100));
+                        worker?.Report((int)(sr.BaseStream.Position / (float)sr.BaseStream.Length * 100));
                     }
                 }
 

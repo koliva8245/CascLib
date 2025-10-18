@@ -9,7 +9,7 @@ namespace CASCLib
         private readonly Dictionary<ulong, MD5Hash> HashToEKey = new Dictionary<ulong, MD5Hash>();
         private readonly Dictionary<int, ulong> FileDataIdToHash = new Dictionary<int, ulong>();
 
-        private CASCHandlerLite(CASCConfig config, LocaleFlags locale, BackgroundWorkerEx worker) : base(config, worker)
+        private CASCHandlerLite(CASCConfig config, LocaleFlags locale, ProgressReporter worker) : base(config, worker)
         {
             if (config.GameType != CASCGameType.WoW)
                 throw new Exception("Unsupported game " + config.BuildUID);
@@ -68,26 +68,26 @@ namespace CASCLib
             Logger.WriteLine("CASCHandlerLite: loaded {0} files", HashToEKey.Count);
         }
 
-        public static CASCHandlerLite OpenStorage(LocaleFlags locale, CASCConfig config, BackgroundWorkerEx worker = null)
+        public static CASCHandlerLite OpenStorage(LocaleFlags locale, CASCConfig config, ProgressReporter worker = null)
         {
             return Open(locale, worker, config);
         }
 
-        public static CASCHandlerLite OpenLocalStorage(string basePath, LocaleFlags locale, string product, BackgroundWorkerEx worker = null)
+        public static CASCHandlerLite OpenLocalStorage(string basePath, LocaleFlags locale, string product, ProgressReporter worker = null)
         {
             CASCConfig config = CASCConfig.LoadLocalStorageConfig(basePath, product);
 
             return Open(locale, worker, config);
         }
 
-        public static CASCHandlerLite OpenOnlineStorage(string product, LocaleFlags locale, string region = "us", BackgroundWorkerEx worker = null)
+        public static CASCHandlerLite OpenOnlineStorage(string product, LocaleFlags locale, string region = "us", ProgressReporter worker = null)
         {
             CASCConfig config = CASCConfig.LoadOnlineStorageConfig(product, region);
 
             return Open(locale, worker, config);
         }
 
-        private static CASCHandlerLite Open(LocaleFlags locale, BackgroundWorkerEx worker, CASCConfig config)
+        private static CASCHandlerLite Open(LocaleFlags locale, ProgressReporter worker, CASCConfig config)
         {
             using (var _ = new PerfCounter("new CASCHandlerLite()"))
             {

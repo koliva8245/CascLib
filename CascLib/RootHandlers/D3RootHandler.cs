@@ -47,9 +47,9 @@ namespace CASCLib
         public override int Count => RootData.Count;
         public override int CountTotal => RootData.Sum(re => re.Value.Count);
 
-        public D3RootHandler(BinaryReader stream, BackgroundWorkerEx worker, CASCHandler casc)
+        public D3RootHandler(BinaryReader stream, ProgressReporter worker, CASCHandler casc)
         {
-            worker?.ReportProgress(0, "Loading \"root\"...");
+            worker?.Start(0, "Loading \"root\"...");
 
             byte b1 = stream.ReadByte();
             byte b2 = stream.ReadByte();
@@ -95,7 +95,7 @@ namespace CASCLib
                     }
                 }
 
-                worker?.ReportProgress((int)((j + 1) / (float)(count + 2) * 100));
+                worker?.Report((int)((j + 1) / (float)(count + 2) * 100));
             }
 
             // Parse CoreTOC.dat
@@ -106,7 +106,7 @@ namespace CASCLib
             using (var file = casc.OpenFile(enc1.Keys[0]))
                 tocParser = new CoreTOCParser(file);
 
-            worker?.ReportProgress((int)((count + 1) / (float)(count + 2) * 100));
+            worker?.Report((int)((count + 1) / (float)(count + 2) * 100));
 
             // Parse Packages.dat
             var pkgEntry = D3RootData["Base"].Find(e => e.Name == "Data_D3\\PC\\Misc\\Packages.dat");
@@ -116,7 +116,7 @@ namespace CASCLib
             using (var file = casc.OpenFile(enc2.Keys[0]))
                 pkgParser = new PackagesParser(file);
 
-            worker?.ReportProgress(100);
+            worker?.Report(100);
         }
 
         public override void Clear()
@@ -204,9 +204,9 @@ namespace CASCLib
             RootData.Add(fileHash, entry);
         }
 
-        public override void LoadListFile(string path, BackgroundWorkerEx worker = null)
+        public override void LoadListFile(string path, ProgressReporter worker = null)
         {
-            worker?.ReportProgress(0, "Loading \"listfile\"...");
+            worker?.Start(0, "Loading \"listfile\"...");
 
             Logger.WriteLine("D3RootHandler: loading file names...");
 
@@ -220,7 +220,7 @@ namespace CASCLib
                 {
                     AddFile(kv.Key, e);
 
-                    worker?.ReportProgress((int)(++i / (float)numFiles * 100));
+                    worker?.Report((int)(++i / (float)numFiles * 100));
                 }
             }
 

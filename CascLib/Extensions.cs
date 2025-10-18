@@ -141,7 +141,7 @@ namespace CASCLib
             }
         }
 
-        public static void CopyToStream(this Stream src, Stream dst, long len, BackgroundWorkerEx progressReporter = null)
+        public static void CopyToStream(this Stream src, Stream dst, long len, ProgressReporter progressReporter = null)
         {
             long done = 0;
 
@@ -153,7 +153,7 @@ namespace CASCLib
             int count;
             do
             {
-                if (progressReporter != null && progressReporter.CancellationPending)
+                if (progressReporter != null)
                     return;
 #if NET6_0_OR_GREATER
                 count = src.Read(buf);
@@ -164,7 +164,7 @@ namespace CASCLib
 #endif
                 done += count;
 
-                progressReporter?.ReportProgress((int)(done / (float)len * 100));
+                progressReporter?.Report((int)(done / (float)len * 100));
             } while (count > 0);
         }
 

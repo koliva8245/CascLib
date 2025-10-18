@@ -44,9 +44,9 @@ namespace CASCLib
         public override int CountTotal => RootData.Sum(re => re.Value.Count);
         public override int CountUnknown => UnknownFiles.Count;
 
-        public WowTVFSRootHandler(BackgroundWorkerEx worker, CASCHandler casc) : base(worker, casc)
+        public WowTVFSRootHandler(ProgressReporter worker, CASCHandler casc) : base(worker, casc)
         {
-            worker?.ReportProgress(0, "Loading \"root\"...");
+            worker?.Start(0, "Loading \"root\"...");
 
             foreach (var tvfsEntry in fileTree)
             {
@@ -108,7 +108,7 @@ namespace CASCLib
 #endif
             }
 
-            worker?.ReportProgress(100);
+            worker?.Report(100);
         }
 
         public IEnumerable<RootEntry> GetAllEntriesByFileDataId(int fileDataId) => GetAllEntries(GetHashByFileDataId(fileDataId));
@@ -198,13 +198,13 @@ namespace CASCLib
 
         public int GetFileDataIdByName(string name) => GetFileDataIdByHash(Hasher.ComputeHash(name));
 
-        public override void LoadListFile(string path, BackgroundWorkerEx worker = null)
+        public override void LoadListFile(string path, ProgressReporter worker = null)
         {
             //CASCFile.Files.Clear();
 
             using (var _ = new PerfCounter("WowRootHandler::LoadListFile()"))
             {
-                worker?.ReportProgress(0, "Loading \"listfile\"...");
+                worker?.Start(0, "Loading \"listfile\"...");
 
                 if (!File.Exists(path))
                 {
@@ -255,7 +255,7 @@ namespace CASCLib
                         else
                             Logger.WriteLine($"Duplicate fileDataId {fileDataId} detected: {line}");
 
-                        worker?.ReportProgress((int)(sr.BaseStream.Position / (float)sr.BaseStream.Length * 100));
+                        worker?.Report((int)(sr.BaseStream.Position / (float)sr.BaseStream.Length * 100));
                     }
                 }
 

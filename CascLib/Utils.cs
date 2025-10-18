@@ -46,7 +46,7 @@ namespace CASCLib
         }
 
         // copies whole stream
-        public static Stream CopyToMemoryStream(this Stream src, long length, BackgroundWorkerEx worker = null)
+        public static Stream CopyToMemoryStream(this Stream src, long length, ProgressReporter worker = null)
         {
             MemoryStream ms = new MemoryStream();
             src.CopyToStream(ms, length, worker);

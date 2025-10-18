@@ -18,7 +18,7 @@ namespace CASCLib
         public RootHandlerBase Root => RootHandler;
         public InstallHandler Install => InstallHandler;
 
-        private CASCHandler(CASCConfig config, BackgroundWorkerEx worker) : base(config, worker)
+        private CASCHandler(CASCConfig config, ProgressReporter worker) : base(config, worker)
         {
             Logger.WriteLine("CASCHandler: loading encoding data...");
 
@@ -113,23 +113,23 @@ namespace CASCLib
             }
         }
 
-        public static CASCHandler OpenStorage(CASCConfig config, BackgroundWorkerEx worker = null, HttpClient httpClient = null) => Open(config, worker, httpClient);
+        public static CASCHandler OpenStorage(CASCConfig config, ProgressReporter worker = null, HttpClient httpClient = null) => Open(config, worker, httpClient);
 
-        public static CASCHandler OpenLocalStorage(string basePath, string product = null, BackgroundWorkerEx worker = null, HttpClient httpClient = null)
+        public static CASCHandler OpenLocalStorage(string basePath, string product = null, ProgressReporter worker = null, HttpClient httpClient = null)
         {
             CASCConfig config = CASCConfig.LoadLocalStorageConfig(basePath, product);
 
             return Open(config, worker, httpClient);
         }
 
-        public static CASCHandler OpenOnlineStorage(string product, string region = "us", BackgroundWorkerEx worker = null, HttpClient httpClient = null)
+        public static CASCHandler OpenOnlineStorage(string product, string region = "us", ProgressReporter worker = null, HttpClient httpClient = null)
         {
             CASCConfig config = CASCConfig.LoadOnlineStorageConfig(product, region);
 
             return Open(config, worker, httpClient);
         }
 
-        private static CASCHandler Open(CASCConfig config, BackgroundWorkerEx worker, HttpClient httpClient)
+        private static CASCHandler Open(CASCConfig config, ProgressReporter worker, HttpClient httpClient)
         {
             if (httpClient is not null)
                 HttpClientService.SetHttpClient(httpClient);

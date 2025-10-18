@@ -16,7 +16,7 @@ namespace CASCLib
 
         }
 
-        public static LocalIndexHandler Initialize(CASCConfig config, BackgroundWorkerEx worker)
+        public static LocalIndexHandler Initialize(CASCConfig config, ProgressReporter worker)
         {
             var handler = new LocalIndexHandler();
 
@@ -25,7 +25,7 @@ namespace CASCLib
             if (idxFiles.Count == 0)
                 throw new FileNotFoundException("idx files are missing!");
 
-            worker?.ReportProgress(0, "Loading \"local indexes\"...");
+            worker?.Start(0, "Loading \"local indexes\"...");
 
             int idxIndex = 0;
 
@@ -33,7 +33,7 @@ namespace CASCLib
             {
                 handler.ParseIndex(idx);
 
-                worker?.ReportProgress((int)(++idxIndex / (float)idxFiles.Count * 100));
+                worker?.Report((int)(++idxIndex / (float)idxFiles.Count * 100));
             }
 
             Logger.WriteLine("LocalIndexHandler: loaded {0} indexes", handler.Count);

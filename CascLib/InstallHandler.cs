@@ -45,9 +45,9 @@ namespace CASCLib
 
         public int Count => InstallData.Count;
 
-        public InstallHandler(BinaryReader stream, BackgroundWorkerEx worker)
+        public InstallHandler(BinaryReader stream, ProgressReporter worker)
         {
-            worker?.ReportProgress(0, "Loading \"install\"...");
+            worker?.Start(0, "Loading \"install\"...");
 
             stream.ReadBytes(2); // IN
 
@@ -91,7 +91,7 @@ namespace CASCLib
 
                 entry.Tags = Tags.FindAll(tag => tag.Bits[i]);
 
-                worker?.ReportProgress((int)((i + 1) / (float)numFiles * 100));
+                worker?.Report((int)((i + 1) / (float)numFiles * 100));
             }
         }
 

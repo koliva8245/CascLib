@@ -20,7 +20,7 @@ namespace CASCLib
 
         public CASCConfig Config { get; protected set; }
 
-        public CASCHandlerBase(CASCConfig config, BackgroundWorkerEx worker)
+        public CASCHandlerBase(CASCConfig config, ProgressReporter worker)
         {
             Config = config;
 
