@@ -33,7 +33,7 @@ namespace CASCLib
                 string groupArchivePath = Path.Combine(config.BasePath, CASCGame.GetDataFolder(config.GameType), "indices", config.ArchiveGroup + ".index");
                 if (File.Exists(groupArchivePath))
                 {
-                    worker?.Start(0, "Loading \"CDN group index\"...");
+                    worker?.Start(0, "Loading \"CDN group index\"...", ProgressStage.CDNIndexes);
                     handler.OpenIndexFile(config.ArchiveGroup, -1);
                     worker?.Report(100);
 
@@ -41,7 +41,7 @@ namespace CASCLib
                 }
             }
 
-            worker?.Start(0, "Loading \"CDN indexes\"...");
+            worker?.Start(0, "Loading \"CDN indexes\"...", ProgressStage.CDNIndexes);
 
             for (int i = 0; i < config.Archives.Count; i++)
             {

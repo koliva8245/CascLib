@@ -101,7 +101,7 @@ namespace CASCLib
 
         public TVFSRootHandler(ProgressReporter worker, CASCHandler casc)
         {
-            worker?.Start(0, "Loading \"root\"...");
+            worker?.Start(0, "Loading \"root\"...", ProgressStage.Root);
 
             var config = casc.Config;
             VfsRootList = config.VfsRootList;

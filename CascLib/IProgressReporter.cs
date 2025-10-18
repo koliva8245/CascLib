@@ -4,7 +4,7 @@
 
 public interface IProgressReporter
 {
-    void Report(int percent, string? message = null);
+    void Report(int percent, string? message = null, ProgressStage? progressStage = null);
 
-    void Start(int initialPercent, string? message = null);
+    void Start(int initialPercent, string? message = null, ProgressStage? progressStage = null);
 }

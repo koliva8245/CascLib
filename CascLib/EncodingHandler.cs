@@ -24,7 +24,7 @@ namespace CASCLib
 
         public EncodingHandler(BinaryReader stream, ProgressReporter worker)
         {
-            worker?.Start(0, "Loading \"encoding\"...");
+            worker?.Start(0, "Loading \"encoding\"...", ProgressStage.Encoding);
 
             stream.Skip(2); // EN
             byte Version = stream.ReadByte(); // must be 1

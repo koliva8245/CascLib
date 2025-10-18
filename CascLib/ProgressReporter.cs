@@ -17,26 +17,26 @@ public class ProgressReporter : IProgressReporter
         _token = token;
     }
 
-    public void Start(int initialPercent, string? message = null)
+    public void Start(int initialPercent, string? message = null, ProgressStage? progressStage = null)
     {
         _token.ThrowIfCancellationRequested();
 
-        SetReport(initialPercent, message);
+        SetReport(initialPercent, message, progressStage);
     }
 
-    public void Report(int percent, string? message = null)
+    public void Report(int percent, string? message = null, ProgressStage? progressStage = null)
     {
         _token.ThrowIfCancellationRequested();
 
         if (percent > _lastPercent)
         {
-            SetReport(percent, message);
+            SetReport(percent, message, progressStage);
         }
     }
 
-    private void SetReport(int percent, string? message)
+    private void SetReport(int percent, string? message, ProgressStage? progressStage)
     {
-        _progress.Report(new ProgressInfo(percent, message));
+        _progress.Report(new ProgressInfo(percent, message, progressStage));
         _lastPercent = percent;
     }
 }

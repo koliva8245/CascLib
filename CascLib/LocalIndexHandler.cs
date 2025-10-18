@@ -25,7 +25,7 @@ namespace CASCLib
             if (idxFiles.Count == 0)
                 throw new FileNotFoundException("idx files are missing!");
 
-            worker?.Start(0, "Loading \"local indexes\"...");
+            worker?.Start(0, "Loading \"local indexes\"...", ProgressStage.LocalIndexes);
 
             int idxIndex = 0;
 

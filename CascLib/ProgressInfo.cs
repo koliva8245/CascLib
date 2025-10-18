@@ -2,4 +2,4 @@
 
 #nullable enable
 
-public record ProgressInfo(int Percent, string? Message);
+public record ProgressInfo(int Percent, string? Message, ProgressStage? ProgressStage);

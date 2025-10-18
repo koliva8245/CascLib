@@ -88,7 +88,7 @@ namespace CASCLib
 
         public MNDXRootHandler(BinaryReader stream, ProgressReporter worker)
         {
-            worker?.Start(0, "Loading \"root\"...");
+            worker?.Start(0, "Loading \"root\"...", ProgressStage.Root);
 
             var header = stream.Read<MNDXHeader>();
 
@@ -315,7 +315,7 @@ namespace CASCLib
 
         public override void LoadListFile(string path, ProgressReporter worker = null)
         {
-            worker?.Start(0, "Loading \"listfile\"...");
+            worker?.Start(0, "Loading \"listfile\"...", ProgressStage.ListFile);
 
             Logger.WriteLine("MNDXRootHandler: loading file names...");
 
