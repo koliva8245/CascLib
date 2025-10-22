@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net.Http;
 using System.Text.RegularExpressions;
 
 namespace CASCLib
@@ -143,12 +144,13 @@ namespace CASCLib
 
         private CASCConfig() { }
 
-        public static CASCConfig LoadOnlineStorageConfig(string product, string region, bool useCurrentBuild = false, ILoggerOptions loggerOptions = null)
+        public static CASCConfig LoadOnlineStorageConfig(string product, string region, bool useCurrentBuild = false, HttpClient httpClient = null, ILoggerOptions loggerOptions = null)
         {
-            if (product == null)
-                throw new ArgumentNullException(nameof(product));
-            if (region == null)
-                throw new ArgumentNullException(nameof(region));
+            ArgumentNullException.ThrowIfNull(product);
+            ArgumentNullException.ThrowIfNull(region);
+
+            if (httpClient is not null)
+                HttpClientService.SetHttpClient(httpClient);
 
             Logger.Init(loggerOptions);
 

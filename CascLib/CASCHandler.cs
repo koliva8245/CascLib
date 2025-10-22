@@ -113,27 +113,36 @@ namespace CASCLib
             }
         }
 
-        public static CASCHandler OpenStorage(CASCConfig config, ProgressReporter worker = null, HttpClient httpClient = null) => Open(config, worker, httpClient);
-
-        public static CASCHandler OpenLocalStorage(string basePath, string product = null, ProgressReporter worker = null, HttpClient httpClient = null)
-        {
-            CASCConfig config = CASCConfig.LoadLocalStorageConfig(basePath, product);
-
-            return Open(config, worker, httpClient);
-        }
-
-        public static CASCHandler OpenOnlineStorage(string product, string region = "us", ProgressReporter worker = null, HttpClient httpClient = null)
-        {
-            CASCConfig config = CASCConfig.LoadOnlineStorageConfig(product, region);
-
-            return Open(config, worker, httpClient);
-        }
-
-        private static CASCHandler Open(CASCConfig config, ProgressReporter worker, HttpClient httpClient)
+        public static CASCHandler OpenStorage(CASCConfig config, HttpClient httpClient = null, ProgressReporter worker = null)
         {
             if (httpClient is not null)
                 HttpClientService.SetHttpClient(httpClient);
 
+            return Open(config, worker);
+        }
+
+        public static CASCHandler OpenLocalStorage(string basePath, string product = null, HttpClient httpClient = null, ProgressReporter worker = null)
+        {
+            if (httpClient is not null)
+                HttpClientService.SetHttpClient(httpClient);
+
+            CASCConfig config = CASCConfig.LoadLocalStorageConfig(basePath, product);
+
+            return Open(config, worker);
+        }
+
+        public static CASCHandler OpenOnlineStorage(string product, string region = "us", HttpClient httpClient = null, ProgressReporter worker = null)
+        {
+            if (httpClient is not null)
+                HttpClientService.SetHttpClient(httpClient);
+
+            CASCConfig config = CASCConfig.LoadOnlineStorageConfig(product, region);
+
+            return Open(config, worker);
+        }
+
+        private static CASCHandler Open(CASCConfig config, ProgressReporter worker)
+        {
             using (var _ = new PerfCounter("new CASCHandler()"))
             {
                 return new CASCHandler(config, worker);
