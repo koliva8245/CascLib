@@ -153,8 +153,6 @@ namespace CASCLib
             int count;
             do
             {
-                if (progressReporter != null)
-                    return;
 #if NET6_0_OR_GREATER
                 count = src.Read(buf);
                 dst.Write(buf.Slice(0, count));
