@@ -144,13 +144,12 @@ namespace CASCLib
 
         private CASCConfig() { }
 
-        public static CASCConfig LoadOnlineStorageConfig(string product, string region, bool useCurrentBuild = false, HttpClient httpClient = null, ILoggerOptions loggerOptions = null)
+        public static CASCConfig LoadOnlineStorageConfig(string product, string region, HttpClient httpClient, bool useCurrentBuild = false, ILoggerOptions loggerOptions = null)
         {
             ArgumentNullException.ThrowIfNull(product);
             ArgumentNullException.ThrowIfNull(region);
 
-            if (httpClient is not null)
-                HttpClientService.SetHttpClient(httpClient);
+            HttpClientService.SetHttpClient(httpClient);
 
             Logger.Init(loggerOptions);
 

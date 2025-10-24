@@ -120,10 +120,8 @@ namespace CASCLib
             return Open(config, worker);
         }
 
-        public static CASCHandler OpenLocalStorage(string basePath, HttpClient httpClient, string product = null, ProgressReporter worker = null)
+        public static CASCHandler OpenLocalStorage(string basePath, string product = null, ProgressReporter worker = null)
         {
-            HttpClientService.SetHttpClient(httpClient);
-
             CASCConfig config = CASCConfig.LoadLocalStorageConfig(basePath, product);
 
             return Open(config, worker);
@@ -131,10 +129,7 @@ namespace CASCLib
 
         public static CASCHandler OpenOnlineStorage(string product, HttpClient httpClient, string region = "us", ProgressReporter worker = null)
         {
-            if (httpClient is not null)
-                HttpClientService.SetHttpClient(httpClient);
-
-            CASCConfig config = CASCConfig.LoadOnlineStorageConfig(product, region);
+            CASCConfig config = CASCConfig.LoadOnlineStorageConfig(product, region, httpClient);
 
             return Open(config, worker);
         }

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Net.Http;
 
 namespace CASCLib
 {
@@ -80,9 +81,10 @@ namespace CASCLib
             return Open(locale, worker, config);
         }
 
-        public static CASCHandlerLite OpenOnlineStorage(string product, LocaleFlags locale, string region = "us", ProgressReporter worker = null)
+        public static CASCHandlerLite OpenOnlineStorage(string product, LocaleFlags locale, HttpClient httpClient, string region = "us", ProgressReporter worker = null)
         {
-            CASCConfig config = CASCConfig.LoadOnlineStorageConfig(product, region);
+            HttpClientService.SetHttpClient(httpClient);
+            CASCConfig config = CASCConfig.LoadOnlineStorageConfig(product, region, httpClient);
 
             return Open(locale, worker, config);
         }
