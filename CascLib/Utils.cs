@@ -1,10 +1,7 @@
 ﻿using System;
 using System.IO;
-using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace CASCLib
 {
@@ -25,21 +22,21 @@ namespace CASCLib
             return $"http://{cdnHost}/{cdnPath}";
         }
 
-        public static HttpResponseMessage HttpWebResponseHead(string url)
+        public static HttpResponseMessage HttpWebResponseHead(Func<string> getUrlFunc)
         {
-            HttpRequestMessage httpRequestMessage = new(HttpMethod.Head, url);
+            HttpRequestMessage httpRequestMessage = new(HttpMethod.Head, getUrlFunc());
 
             return HttpClientService.Instance.SendAsync(httpRequestMessage).Result;
         }
 
-        public static HttpResponseMessage HttpWebResponseGet(string url)
+        public static HttpResponseMessage HttpWebResponseGet(Func<string> getUrlFunc)
         {
-            return HttpClientService.Instance.GetAsync(url).Result;
+            return HttpClientService.Instance.GetAsync(getUrlFunc()).Result;
         }
 
-        public static HttpResponseMessage HttpWebResponseGetWithRange(string url, int from, int to)
+        public static HttpResponseMessage HttpWebResponseGetWithRange(Func<string> getUrlFunc, int from, int to)
         {
-            HttpRequestMessage httpRequestMessage = new(HttpMethod.Get, url);
+            HttpRequestMessage httpRequestMessage = new(HttpMethod.Get, getUrlFunc());
             httpRequestMessage.Headers.Range = new RangeHeaderValue(from, to);
 
             return HttpClientService.Instance.SendAsync(httpRequestMessage).Result;
