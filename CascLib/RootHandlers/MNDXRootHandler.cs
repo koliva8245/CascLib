@@ -81,7 +81,8 @@ namespace CASCLib
 
         private Dictionary<int, string> Packages = new Dictionary<int, string>();
         private Dictionary<int, LocaleFlags> PackagesLocale = new Dictionary<int, LocaleFlags>();
-        private Dictionary<string, int> IndexByPackages = [];
+        private Dictionary<string, int> IndexByPackages = new Dictionary<string, int>();
+        private Dictionary<string, int>.AlternateLookup<ReadOnlySpan<char>> IndexByPackagesSpanLookup;
 
         private Dictionary<ulong, RootEntry> mndxData = new Dictionary<ulong, RootEntry>();
 
@@ -90,6 +91,8 @@ namespace CASCLib
 
         public MNDXRootHandler(BinaryReader stream, ProgressReporter worker)
         {
+            IndexByPackagesSpanLookup = IndexByPackages.GetAlternateLookup<ReadOnlySpan<char>>();
+
             worker?.Start(0, "Loading \"root\"...", ProgressStage.Root);
 
             var header = stream.Read<MNDXHeader>();
@@ -241,13 +244,14 @@ namespace CASCLib
             int splitterCount = fileName.Count(x => x == '/' || x == '\\');
             Span<Range> filePathRanges = stackalloc Range[splitterCount + 1];
 
-            int size = fileName.AsSpan().SplitAny(filePathRanges, "/\\", StringSplitOptions.None);
+            ReadOnlySpan<char> fileNameSpan = fileName.AsSpan();
+            int size = fileNameSpan.SplitAny(filePathRanges, "/\\", StringSplitOptions.None);
 
             // skip first since already checked full path
             for (int i = size - 2; i >= 0; i--)
             {
-                string part = fileName[..filePathRanges[i].End.Value];
-                if (IndexByPackages.TryGetValue(part, out pkgIndex))
+                ReadOnlySpan<char> part = fileNameSpan[..filePathRanges[i].End.Value];
+                if (IndexByPackagesSpanLookup.TryGetValue(part, out pkgIndex))
                     return pkgIndex;
             }
 
