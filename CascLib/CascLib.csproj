@@ -7,7 +7,7 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <PackageProjectUrl>https://github.com/WoW-Tools/CascLib</PackageProjectUrl>
     <RepositoryUrl>https://github.com/WoW-Tools/CascLib.git</RepositoryUrl>
-    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
     <Authors>TOM_RUS</Authors>
     <Version>1.0.0</Version>
     <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
