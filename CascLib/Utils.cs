@@ -26,12 +26,12 @@ namespace CASCLib
         {
             HttpRequestMessage httpRequestMessage = new(HttpMethod.Head, getUrlFunc());
 
-            return HttpClientService.Instance.SendAsync(httpRequestMessage).Result;
+            return HttpClientService.Instance.SendAsync(httpRequestMessage, HttpCompletionOption.ResponseHeadersRead).GetAwaiter().GetResult();
         }
 
         public static HttpResponseMessage HttpWebResponseGet(Func<string> getUrlFunc)
         {
-            return HttpClientService.Instance.GetAsync(getUrlFunc()).Result;
+            return HttpClientService.Instance.GetAsync(getUrlFunc(), HttpCompletionOption.ResponseHeadersRead).GetAwaiter().GetResult();
         }
 
         public static HttpResponseMessage HttpWebResponseGetWithRange(Func<string> getUrlFunc, int from, int to)
@@ -39,7 +39,7 @@ namespace CASCLib
             HttpRequestMessage httpRequestMessage = new(HttpMethod.Get, getUrlFunc());
             httpRequestMessage.Headers.Range = new RangeHeaderValue(from, to);
 
-            return HttpClientService.Instance.SendAsync(httpRequestMessage).Result;
+            return HttpClientService.Instance.SendAsync(httpRequestMessage, HttpCompletionOption.ResponseHeadersRead).GetAwaiter().GetResult();
         }
 
         // copies whole stream
