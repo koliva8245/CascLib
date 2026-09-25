@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.IO.MemoryMappedFiles;
 using System.Net.Http;
@@ -9,6 +10,8 @@ namespace CASCLib
     public class CacheMetaData
     {
         public long Size { get; }
+        
+        // server last-modifited, in UTC
         public DateTime LastModified { get; }
 
         public CacheMetaData(long size, DateTime lastModified)
@@ -39,21 +42,97 @@ namespace CASCLib
             {
                 _config = config;
 
-                string metaFile = Path.Combine(CachePath, "cache.meta");
-
                 _metaData = new Dictionary<string, CacheMetaData>(StringComparer.OrdinalIgnoreCase);
 
-                if (File.Exists(metaFile))
-                {
-                    var lines = File.ReadLines(metaFile);
-
-                    foreach (var line in lines)
-                    {
-                        string[] tokens = line.Split(new[] { ' ' }, 3);
-                        _metaData[tokens[0]] = new CacheMetaData(Convert.ToInt64(tokens[1]), DateTime.Parse(tokens[2]));
-                    }
-                }
+                // load meta file code
+                LoadMetaData();
             }
+        }
+
+        private static string MetaFilePath => Path.Combine(CachePath, "cache.meta");
+
+        private void LoadMetaData()
+        {
+            string metaFile = MetaFilePath;
+
+            if (!File.Exists(metaFile))
+            {
+                Logger.WriteLine("CDNCache: cache.meta file does not exist, will be created on first download");
+                return;
+            }
+
+            int lineCount = 0;
+            bool needsRewrite = false;
+
+            foreach (string line in File.ReadLines(metaFile))
+            {
+                if (string.IsNullOrWhiteSpace(line))
+                    continue;
+
+                lineCount++;
+
+                string[] tokens = line.Split(' ', 3);
+
+                if (tokens.Length != 3 ||
+                    !long.TryParse(tokens[1], NumberStyles.None, CultureInfo.InvariantCulture, out long size) ||
+                    !TryParseLastModified(tokens[2], out DateTime lastModified, out bool isLegacyFormat))
+                {
+                    // unreadable line: drop it, the file will be re-validated with a HEAD request
+                    needsRewrite = true;
+                    continue;
+                }
+
+                needsRewrite |= isLegacyFormat;
+
+                // later overwrites
+                _metaData[tokens[0]] = new CacheMetaData(size, lastModified);
+            }
+
+            // compact duplicates so cache.meta doesn't grow forever
+            if (needsRewrite || lineCount != _metaData.Count)
+                SaveMetaData();
+        }
+
+        private static bool TryParseLastModified(string value, out DateTime lastModifiedUtc, out bool isLegacyFormat)
+        {
+            // current format: ISO 8601 round-trip ("o") in UTC
+            if (DateTime.TryParseExact(value, "o", CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out DateTime dt) && dt.Kind == DateTimeKind.Utc)
+            {
+                lastModifiedUtc = dt;
+                isLegacyFormat = false;
+                return true;
+            }
+
+            // legacy format: DateTimeOffset.ToString() in the current culture, e.g. "9/24/2026 3:00:00 PM +00:00"
+            isLegacyFormat = true;
+
+            if (DateTimeOffset.TryParse(value, CultureInfo.CurrentCulture, DateTimeStyles.AssumeUniversal, out DateTimeOffset dto) ||
+                DateTimeOffset.TryParse(value, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out dto))
+            {
+                lastModifiedUtc = dto.UtcDateTime;
+                return true;
+            }
+
+            lastModifiedUtc = default;
+            return false;
+        }
+
+        private static string FormatMetaLine(string fileName, CacheMetaData meta) => $"{fileName} {meta.Size.ToString(CultureInfo.InvariantCulture)} {meta.LastModified.ToString("o", CultureInfo.InvariantCulture)}";
+
+        private void SaveMetaData()
+        {
+            Directory.CreateDirectory(CachePath);
+
+            string metaFile = MetaFilePath;
+            string tempFile = metaFile + ".tmp";
+
+            using (StreamWriter streamWriter = new(tempFile, append: false))
+            {
+                foreach (KeyValuePair<string, CacheMetaData> meta in _metaData)
+                    streamWriter.WriteLine(FormatMetaLine(meta.Key, meta.Value));
+            }
+
+            File.Move(tempFile, metaFile, overwrite: true);
         }
 
         public static void Init(CASCConfig config)
@@ -134,7 +213,7 @@ namespace CASCLib
         {
             string fileName = Path.GetFileName(file);
 
-            FileInfo fi = new FileInfo(file);
+            FileInfo fi = new(file);
 
             if (!fi.Exists && !DownloadFile(cdnPath, file))
                 return false;
@@ -151,7 +230,7 @@ namespace CASCLib
                     throw new InvalidDataException($"unable to validate file {file}");
 
                 bool sizeOk = fi.Length == meta.Size;
-                bool dateOk = fi.CreationTime == meta.LastModified;
+                bool dateOk = !HasLastModified(meta) || fi.LastWriteTimeUtc == meta.LastModified;
 
                 if (sizeOk && dateOk)
                 {
@@ -176,16 +255,18 @@ namespace CASCLib
             long contentLength = resp.Content.Headers.ContentLength ?? 0;
             DateTimeOffset lastModified = resp.Content.Headers.LastModified ?? DateTimeOffset.MinValue;
 
-            CacheMetaData meta = new CacheMetaData(contentLength, lastModified.DateTime);
+            CacheMetaData meta = new(contentLength, DateTime.SpecifyKind(lastModified.UtcDateTime, DateTimeKind.Utc));
             _metaData[fileName] = meta;
 
-            using (var sw = File.AppendText(Path.Combine(CachePath, "cache.meta")))
+            using (StreamWriter streamWriter = File.AppendText(MetaFilePath))
             {
-                sw.WriteLine($"{fileName} {contentLength} {lastModified}");
+                streamWriter.WriteLine(FormatMetaLine(fileName, meta));
             }
 
             return meta;
         }
+
+        private static bool HasLastModified(CacheMetaData meta) => meta.LastModified > DateTime.MinValue;
 
         public void InvalidateFile(string fileName)
         {
@@ -204,13 +285,8 @@ namespace CASCLib
             if (File.Exists(filePath))
                 File.Delete(filePath);
 
-            using (var sw = File.AppendText(Path.Combine(CachePath, "cache.meta")))
-            {
-                foreach (var meta in _metaData)
-                {
-                    sw.WriteLine($"{meta.Key} {meta.Value.Size} {meta.Value.LastModified}");
-                }
-            }
+            // rewrite, so the whole table isn't duplicated on every invalidation
+            SaveMetaData();
         }
 
         private bool DownloadFile(string cdnPath, string path)
@@ -245,8 +321,9 @@ namespace CASCLib
                         stream.CopyToStream(fs, resp.Content.Headers.ContentLength ?? 0);
                         meta = CacheFile(resp, Path.GetFileName(path));
                     }
-                    FileInfo fileInfo = new FileInfo(path);
-                    fileInfo.CreationTime = meta.LastModified;
+
+                    if (HasLastModified(meta))
+                        File.SetLastWriteTimeUtc(path, meta.LastModified);
                 }
             }
             catch (HttpRequestException exc)
