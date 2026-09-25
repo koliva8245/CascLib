@@ -23,6 +23,8 @@ namespace CASCLib
 
     public class CDNCache
     {
+        private readonly string _metaFilePath;
+
         public static bool Enabled { get; set; } = true;
         public static bool CacheData { get; set; } = false;
         public static bool Validate { get; set; } = true;
@@ -44,22 +46,19 @@ namespace CASCLib
 
                 _metaData = new Dictionary<string, CacheMetaData>(StringComparer.OrdinalIgnoreCase);
 
+                _metaFilePath = Path.Combine(CachePath, "cache.meta");
+
                 // load meta file code
                 LoadMetaData();
             }
         }
 
-        private static string MetaFilePath => Path.Combine(CachePath, "cache.meta");
-
         private void LoadMetaData()
         {
-            string metaFile = MetaFilePath;
+            string metaFile = _metaFilePath;
 
             if (!File.Exists(metaFile))
-            {
-                Logger.WriteLine("CDNCache: cache.meta file does not exist, will be created on first download");
                 return;
-            }
 
             int lineCount = 0;
             bool needsRewrite = false;
@@ -123,7 +122,7 @@ namespace CASCLib
         {
             Directory.CreateDirectory(CachePath);
 
-            string metaFile = MetaFilePath;
+            string metaFile = _metaFilePath;
             string tempFile = metaFile + ".tmp";
 
             using (StreamWriter streamWriter = new(tempFile, append: false))
@@ -258,7 +257,7 @@ namespace CASCLib
             CacheMetaData meta = new(contentLength, DateTime.SpecifyKind(lastModified.UtcDateTime, DateTimeKind.Utc));
             _metaData[fileName] = meta;
 
-            using (StreamWriter streamWriter = File.AppendText(MetaFilePath))
+            using (StreamWriter streamWriter = File.AppendText(_metaFilePath))
             {
                 streamWriter.WriteLine(FormatMetaLine(fileName, meta));
             }
