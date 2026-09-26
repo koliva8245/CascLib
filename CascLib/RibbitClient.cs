@@ -1,5 +1,4 @@
-﻿using MimeKit;
-using System;
+﻿using System;
 using System.IO;
 using System.Net;
 using System.Net.Http;
@@ -34,16 +33,7 @@ namespace CASCLib
             switch (version)
             {
                 case 1:
-                    using (var stream = client.GetStream())
-                    {
-                        byte[] req = Encoding.ASCII.GetBytes(request + "\r\n");
-
-                        stream.Write(req, 0, req.Length);
-
-                        var message = MimeMessage.Load(stream);
-
-                        return message.TextBody;
-                    }
+                    throw new NotImplementedException("Ribbit v1 is not supported");
                 case 2:
                     return GetV2Https(request);
                 default:
