@@ -87,15 +87,20 @@ namespace CASCLib
 
             try
             {
-                using (var resp = Utils.HttpWebResponseGetWithRange(() => Utils.MakeCDNUrl(config.CDNHost, file), entry.Offset, entry.Offset + entry.Size - 1))
+                using (var resp = Utils.HttpGetRange(() => Utils.MakeCDNUrl(config.CDNHost, file), entry.Offset, entry.Offset + entry.Size - 1))
                 using (Stream rstream = resp.Content.ReadAsStream())
                 {
-                    return rstream.CopyBytesToMemoryStream(entry.Size);
+                    Stream ms = rstream.CopyBytesToMemoryStream(entry.Size);
+
+                    if (ms.Length != entry.Size)
+                        throw new HttpRequestException($"short read for {file}: got {ms.Length} of {entry.Size} bytes");
+
+                    return ms;
                 }
             }
-            catch (HttpRequestException exc)
+            catch (Exception exc) when (exc is HttpRequestException or IOException)
             {
-                Logger.WriteLine($"CDNIndexHandler: error while opening {file}: Status {exc.Message}, StatusCode {exc.StatusCode}");
+                Logger.WriteLine($"CDNIndexHandler: error while opening {file}: {exc.Message}");
                 return null;
             }
         }
@@ -140,11 +145,7 @@ namespace CASCLib
             //    return ms;
             //}
 
-            using (var resp = Utils.HttpWebResponseGet(getUrlFunc))
-            using (Stream stream = resp.Content.ReadAsStream())
-            {
-                return stream.CopyToMemoryStream(resp.Content.Headers.ContentLength ?? 0);
-            }
+            return Utils.HttpGetBuffered(getUrlFunc);
         }
 
         public IndexEntry GetIndexInfo(in MD5Hash eKey)

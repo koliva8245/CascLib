@@ -1,7 +1,9 @@
 ﻿using System;
 using System.IO;
+using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
+using System.Threading.Tasks;
 
 namespace CASCLib
 {
@@ -9,12 +11,12 @@ namespace CASCLib
     {
         public static string MakeCDNPath(string cdnPath, string folder, string fileName)
         {
-            return $"{cdnPath}/{folder}/{fileName.Substring(0, 2)}/{fileName.Substring(2, 2)}/{fileName}";
+            return $"{cdnPath}/{folder}/{fileName[..2]}/{fileName.Substring(2, 2)}/{fileName}";
         }
 
         public static string MakeCDNPath(string cdnPath, string fileName)
         {
-            return $"{cdnPath}/{fileName.Substring(0, 2)}/{fileName.Substring(2, 2)}/{fileName}";
+            return $"{cdnPath}/{fileName[..2]}/{fileName.Substring(2, 2)}/{fileName}";
         }
 
         public static string MakeCDNUrl(string cdnHost, string cdnPath)
@@ -22,33 +24,62 @@ namespace CASCLib
             return $"http://{cdnHost}/{cdnPath}";
         }
 
-        public static HttpResponseMessage HttpWebResponseHead(Func<string> getUrlFunc)
+        public static HttpResponseMessage HttpHead(Func<string> getUrlFunc)
         {
-            HttpRequestMessage httpRequestMessage = new(HttpMethod.Head, getUrlFunc());
-
-            return HttpClientService.Instance.SendAsync(httpRequestMessage, HttpCompletionOption.ResponseHeadersRead).GetAwaiter().GetResult();
+            return HttpSend(getUrlFunc, HttpMethod.Head, null, HttpStatusCode.OK);
         }
 
-        public static HttpResponseMessage HttpWebResponseGet(Func<string> getUrlFunc)
+        public static HttpResponseMessage HttpGet(Func<string> getUrlFunc)
         {
-            return HttpClientService.Instance.GetAsync(getUrlFunc(), HttpCompletionOption.ResponseHeadersRead).GetAwaiter().GetResult();
+            return HttpSend(getUrlFunc, HttpMethod.Get, null, HttpStatusCode.OK);
         }
 
-        public static HttpResponseMessage HttpWebResponseGetWithRange(Func<string> getUrlFunc, int from, int to)
+        public static HttpResponseMessage HttpGetRange(Func<string> getUrlFunc, long from, long to)
         {
-            HttpRequestMessage httpRequestMessage = new(HttpMethod.Get, getUrlFunc());
-            httpRequestMessage.Headers.Range = new RangeHeaderValue(from, to);
-
-            return HttpClientService.Instance.SendAsync(httpRequestMessage, HttpCompletionOption.ResponseHeadersRead).GetAwaiter().GetResult();
+            // a 200 here means the server ignored the Range header and is sending the whole archive
+            return HttpSend(getUrlFunc, HttpMethod.Get, new RangeHeaderValue(from, to), HttpStatusCode.PartialContent);
         }
 
-        // copies whole stream
-        public static Stream CopyToMemoryStream(this Stream src, long length, ProgressReporter worker = null)
+        // GETs the whole body into a seekable MemoryStream and releases the connection
+        public static MemoryStream HttpGetBuffered(Func<string> getUrlFunc)
         {
-            MemoryStream ms = new MemoryStream();
-            src.CopyToStream(ms, length, worker);
-            ms.Position = 0;
-            return ms;
+            using HttpResponseMessage response = HttpGet(getUrlFunc);
+            using Stream stream = response.Content.ReadAsStream();
+
+            MemoryStream memoryStream = new((int)(response.Content.Headers.ContentLength ?? 0));
+            stream.CopyTo(memoryStream);
+            memoryStream.Position = 0;
+            return memoryStream;
+        }
+
+        private static HttpResponseMessage HttpSend(Func<string> getUrlFunc, HttpMethod method, RangeHeaderValue range, HttpStatusCode expectedStatus)
+        {
+            string url = getUrlFunc();
+
+            HttpRequestMessage request = new(method, url);
+            request.Headers.Range = range;
+
+            HttpResponseMessage response;
+
+            try
+            {
+                response = HttpClientService.Instance.SendAsync(request, HttpCompletionOption.ResponseHeadersRead).GetAwaiter().GetResult();
+            }
+            catch (TaskCanceledException ex)
+            {
+                // HttpClient.Timeout surfaces as TaskCanceledException; normalize so callers only catch one type
+                throw new HttpRequestException($"{method} {url} timed out", ex);
+            }
+
+            if (response.StatusCode != expectedStatus)
+            {
+                HttpStatusCode status = response.StatusCode;
+                response.Dispose();
+
+                throw new HttpRequestException($"{method} {url} returned {(int)status} {status}, expected {(int)expectedStatus}", null, status);
+            }
+
+            return response;
         }
 
         // copies whole stream

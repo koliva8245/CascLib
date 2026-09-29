@@ -203,8 +203,8 @@ namespace CASCLib
 
         protected Stream OpenFile(Func<string> getUrlFunc)
         {
-            var resp = Utils.HttpWebResponseGet(getUrlFunc);
-            return resp.Content.ReadAsStream();
+            // callers (ParseIndex, BLTEStream) seek and read Length, which a network stream can't do
+            return Utils.HttpGetBuffered(getUrlFunc);
         }
     }
 }

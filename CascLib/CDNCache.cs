@@ -10,7 +10,7 @@ namespace CASCLib
     public class CacheMetaData
     {
         public long Size { get; }
-        
+
         // server last-modifited, in UTC
         public DateTime LastModified { get; }
 
@@ -184,10 +184,12 @@ namespace CASCLib
 
         private Stream GetFileStream(string file, string cdnPath)
         {
-            if (ValidateMeta(file, cdnPath))
-                return File.Open(file, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
-            else
-                return GetFileStream(file, cdnPath);
+            // false means the download failed; returning null lets the caller fall back to a direct request
+            // instead of recursing until the stack overflows
+            if (!ValidateMeta(file, cdnPath))
+                return null;
+
+            return File.Open(file, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
         }
 
         private MemoryMappedFile GetDataFile(string file, string cdnPath)
@@ -197,15 +199,13 @@ namespace CASCLib
             if (_dataStreams.TryGetValue(fileName, out MemoryMappedFile mmFile))
                 return mmFile;
 
-            if (ValidateMeta(file, cdnPath))
-            {
-                FileStream fs = new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
-                mmFile = MemoryMappedFile.CreateFromFile(fs, null, 0, MemoryMappedFileAccess.Read, HandleInheritability.None, false);
-                _dataStreams.Add(fileName, mmFile);
-                return mmFile;
-            }
-            else
-                return GetDataFile(file, cdnPath);
+            if (!ValidateMeta(file, cdnPath))
+                return null;
+
+            FileStream fs = new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+            mmFile = MemoryMappedFile.CreateFromFile(fs, null, 0, MemoryMappedFileAccess.Read, HandleInheritability.None, false);
+            _dataStreams.Add(fileName, mmFile);
+            return mmFile;
         }
 
         private bool ValidateMeta(string file, string cdnPath)
@@ -249,9 +249,11 @@ namespace CASCLib
             return true;
         }
 
-        private CacheMetaData CacheFile(HttpResponseMessage resp, string fileName)
+        private CacheMetaData CacheFile(HttpResponseMessage resp, string fileName, long? actualLength = null)
         {
-            long contentLength = resp.Content.Headers.ContentLength ?? 0;
+            // prefer the bytes actually written; a response without Content-Length would otherwise record 0
+            // and fail validation on every open
+            long contentLength = actualLength ?? resp.Content.Headers.ContentLength ?? 0;
             DateTimeOffset lastModified = resp.Content.Headers.LastModified ?? DateTimeOffset.MinValue;
 
             CacheMetaData meta = new(contentLength, DateTime.SpecifyKind(lastModified.UtcDateTime, DateTimeKind.Utc));
@@ -294,40 +296,40 @@ namespace CASCLib
 
             Directory.CreateDirectory(Path.GetDirectoryName(path));
 
-            //using (var client = new HttpClient())
-            //{
-            //    var msg = client.GetAsync(url).Result;
-
-            //    using (Stream fs = new FileStream(path, FileMode.Create, FileAccess.Write))
-            //    {
-            //        //CacheMetaData.AddToCache(resp, path);
-            //        //CopyToStream(stream, fs, resp.ContentLength);
-
-            //        msg.Content.CopyToAsync(fs).Wait();
-            //    }
-            //}
-
             DateTime startTime = DateTime.Now;
+            string tempPath = $"{path}.download";
 
             try
             {
-                using (var resp = Utils.HttpWebResponseGet(() => Utils.MakeCDNUrl(_config.CDNHost, cdnPath)))
+                using (var resp = Utils.HttpGet(() => Utils.MakeCDNUrl(_config.CDNHost, cdnPath)))
                 {
-                    CacheMetaData meta;
+                    long written;
+
+                    // download to a temp file so an interrupted transfer never leaves a truncated file at the real path
                     using (Stream stream = resp.Content.ReadAsStream())
-                    using (Stream fs = new FileStream(path, FileMode.Create, FileAccess.Write))
+                    using (Stream fs = new FileStream(tempPath, FileMode.Create, FileAccess.Write))
                     {
                         stream.CopyToStream(fs, resp.Content.Headers.ContentLength ?? 0);
-                        meta = CacheFile(resp, Path.GetFileName(path));
+                        written = fs.Length;
                     }
+
+                    if (resp.Content.Headers.ContentLength is long expected && expected != written)
+                        throw new IOException($"expected {expected} bytes, got {written}");
+
+                    File.Move(tempPath, path, overwrite: true);
+
+                    CacheMetaData meta = CacheFile(resp, Path.GetFileName(path), written);
 
                     if (HasLastModified(meta))
                         File.SetLastWriteTimeUtc(path, meta.LastModified);
                 }
             }
-            catch (HttpRequestException exc)
+            catch (Exception exc) when (exc is HttpRequestException or IOException)
             {
-                Logger.WriteLine($"CDNCache: error while downloading {cdnPath}: Status {exc.Message}, StatusCode {exc.StatusCode}");
+                Logger.WriteLine($"CDNCache: error while downloading {cdnPath}: {exc.Message}");
+
+                try { File.Delete(tempPath); } catch (IOException) { }
+
                 return false;
             }
 
@@ -344,14 +346,14 @@ namespace CASCLib
         {
             try
             {
-                using (var resp = Utils.HttpWebResponseHead(() => Utils.MakeCDNUrl(_config.CDNHost, cdnPath)))
+                using (var resp = Utils.HttpHead(() => Utils.MakeCDNUrl(_config.CDNHost, cdnPath)))
                 {
                     return CacheFile(resp, fileName);
                 }
             }
             catch (HttpRequestException exc)
             {
-                Logger.WriteLine($"CDNCache: error at GetMetaData {cdnPath}: Status {exc.Message}, StatusCode {exc.StatusCode}");
+                Logger.WriteLine($"CDNCache: error at GetMetaData {cdnPath}: {exc.Message}");
                 return null;
             }
         }
