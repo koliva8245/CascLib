@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.IO.MemoryMappedFiles;
@@ -6,7 +6,14 @@ using System.Text;
 
 namespace CASCLib
 {
-    public abstract class CASCHandlerBase
+    /// <summary>
+    /// The base class for opening a CASC storage.
+    /// </summary>
+    /// <remarks>
+    /// A local storage keeps the data files (<c>data.###</c>) it reads from open, so dispose of the handler to close them.
+    /// The <see cref="CDNCache"/> is shared by all handlers, so it is not closed.
+    /// </remarks>
+    public abstract class CASCHandlerBase : IDisposable
     {
         protected LocalIndexHandler LocalIndex;
         protected CDNIndexHandler CDNIndex;
@@ -17,6 +24,8 @@ namespace CASCLib
         protected readonly Dictionary<int, MemoryMappedFile> DataStreams = new Dictionary<int, MemoryMappedFile>();
 
         private static readonly object DataStreamLock = new object();
+
+        private bool _disposed;
 
         public CASCConfig Config { get; protected set; }
 
@@ -270,6 +279,9 @@ namespace CASCLib
         {
             lock (DataStreamLock)
             {
+                // checked inside the lock, so a data file is not opened again after Dispose closed them
+                ObjectDisposedException.ThrowIf(_disposed, this);
+
                 if (DataStreams.TryGetValue(index, out MemoryMappedFile stream))
                     return stream;
 
@@ -283,6 +295,43 @@ namespace CASCLib
                 DataStreams[index] = stream;
 
                 return stream;
+            }
+        }
+
+        /// <summary>
+        /// Closes the local data files (<c>data.###</c>) that were opened.
+        /// </summary>
+        /// <remarks>
+        /// Reading from the local storage afterwards throws an <see cref="ObjectDisposedException"/>.
+        /// Streams that were opened before are not closed by this, so dispose of them as usual.
+        /// </remarks>
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        /// <summary>
+        /// Closes the local data files (<c>data.###</c>) that were opened.
+        /// </summary>
+        /// <param name="disposing"><see langword="true"/> if called from <see cref="Dispose()"/>; <see langword="false"/> if called from a finalizer.</param>
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!disposing)
+                return;
+
+            lock (DataStreamLock)
+            {
+                if (_disposed)
+                    return;
+
+                _disposed = true;
+
+                // each memory-mapped file owns its FileStream (leaveOpen is false), so this closes both
+                foreach (MemoryMappedFile stream in DataStreams.Values)
+                    stream.Dispose();
+
+                DataStreams.Clear();
             }
         }
     }
